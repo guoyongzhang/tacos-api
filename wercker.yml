@@ -54,7 +54,7 @@ build:
         cmd: ./app
         tag: test
         ports: "32001"
-        repository: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+        repository: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
         registry: https://iad.ocir.io/v2
 
 validate-and-promote:
@@ -62,7 +62,7 @@ validate-and-promote:
     services:
         - id: mongo:3.6
           name: mongo
-        - id: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+        - id: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
           tag: test
           name: apiserver
           username: $DOCKER_USERNAME
@@ -99,7 +99,7 @@ validate-and-promote:
         cmd: /pipeline/source/app
         tag: latest,$WERCKER_GIT_BRANCH-$WERCKER_GIT_COMMIT
         ports: "32001"
-        repository: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+        repository: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
         registry: https://iad.ocir.io/v2
 
 deploy-to-oke:
@@ -161,9 +161,9 @@ clair-scan:
   - script:
     code: |
       docker login iad.ocir.io -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-      docker pull iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api:latest
+      docker pull iad.ocir.io/odx-pipelines/gz/demo_tacos-api:latest
       sleep 10 # to make sure clair service has started
-      /bin/clair-scanner --ip=`hostname -i` --report="report.json" --clair="http://clair:6060" iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api:latest || :
+      /bin/clair-scanner --ip=`hostname -i` --report="report.json" --clair="http://clair:6060" iad.ocir.io/odx-pipelines/gz/demo_tacos-api:latest || :
       OK=`grep "\"vulnerabilities\": \[\]" report.json | wc -l`
       echo $OK
       if [ "$OK" == "1" ]; then 
