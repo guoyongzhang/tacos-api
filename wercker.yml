@@ -1,0 +1,174 @@
+# Copyright 2018, Oracle Corporation and/or its affiliates. All rights reserved.
+
+box: golang
+
+build:
+    steps:
+
+    - script:
+        name: copy src files to goroot
+        code: |
+          mkdir /go/src/tacos-api
+          cp -rv . /go/src/tacos-api/
+   
+    - golint:
+        exclude: "^vendor"
+
+    - script:
+        name: install govendor
+        code: |
+          go get -u github.com/kardianos/govendor
+
+    - script:
+        name: install dependencies
+        code: |
+          cd /go/src/tacos-api
+          govendor fetch github.com/cactus/go-statsd-client/statsd
+          govendor sync
+
+    - script:
+        name: go test everything
+        code: |
+          cd /go/src/tacos-api
+          go test ./...   
+
+    - script:
+        name: go build
+        code: |
+          cd /go/src/tacos-api
+          go build -o app .
+
+    - script:
+        name: copy files
+        code: |
+          cp -v deploy-api.yml "$WERCKER_OUTPUT_DIR"
+          cp -v /go/src/tacos-api/app "$WERCKER_OUTPUT_DIR"
+          cp -v init.mongo "$WERCKER_OUTPUT_DIR"
+          cp -v tacos.yml "$WERCKER_OUTPUT_DIR" 
+          cp -rv tacos-api-test "$WERCKER_OUTPUT_DIR" 
+
+    - internal/docker-push:
+        username: $DOCKER_USERNAME
+        password: $DOCKER_PASSWORD
+        working-dir: /pipeline/output
+        cmd: ./app
+        tag: test
+        ports: "32001"
+        repository: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+        registry: https://iad.ocir.io/v2
+
+validate-and-promote:
+    box: debian
+    services:
+        - id: mongo:3.6
+          name: mongo
+        - id: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+          tag: test
+          name: apiserver
+          username: $DOCKER_USERNAME
+          password: $DOCKER_PASSWORD
+          env: 
+            MONGO_HOST: mongo 
+    steps:
+    - script: 
+        name: Load test data into mongo
+        code: |
+            apt-get update 
+            apt-get -y install gnupg curl
+            apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv E52529D4
+            echo "deb http://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse" > /etc/apt/sources.list.d/mongodb-org-4.0.list
+            apt-get update
+            apt-get -y install mongodb-org-shell
+            mongo mongo:27017 < $WERCKER_ROOT/init.mongo
+
+    - script:
+        name: Call the API's to verify the image
+        code: |
+            TEST1=`curl -s http://apiserver:32001/api/v1/stores | grep "Silly Tacos" | wc -l`
+            if [ "$TEST1" == "1" ]; then
+                echo "GET /api/v1/stores   OK"
+            else
+                echo "GET /api/v1/stores   FAILED"
+                exit 1
+            fi 
+
+    - internal/docker-push:
+        username: $DOCKER_USERNAME
+        password: $DOCKER_PASSWORD
+        working-dir: /pipeline/source
+        cmd: /pipeline/source/app
+        tag: latest,$WERCKER_GIT_BRANCH-$WERCKER_GIT_COMMIT
+        ports: "32001"
+        repository: iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api
+        registry: https://iad.ocir.io/v2
+
+deploy-to-oke:
+    box: debian  
+    steps:
+    - kubectl:
+        name: Remove secret for image pull if it already exists
+        server: $KUBE_SERVER
+        token: $KUBE_TOKEN
+        insecure-skip-tls-verify: true 
+        command: delete secret myregistrykey
+    - kubectl:
+        name: Create secret for image pull
+        server: $KUBE_SERVER
+        token: $KUBE_TOKEN
+        insecure-skip-tls-verify: true 
+        command: create secret docker-registry myregistrykey --docker-server="https://iad.ocir.io/v2/" --docker-username=$DOCKER_USERNAME --docker-password="$DOCKER_PASSWORD" --docker-email=$DOCKER_EMAIL
+    - kubectl:
+        name: Deploy application
+        server: $KUBE_SERVER
+        token: $KUBE_TOKEN
+        insecure-skip-tls-verify: true 
+        command: apply -f tacos.yml
+
+integration-test:
+    box: node
+    docker: true
+    steps:
+    - script:
+      name: Run tests
+      code: |
+        cd tacos-api-test
+        node func.js
+
+cleanup:
+    box: debian
+    steps:
+    - kubectl:
+        name: Remove temporary deployment
+        server: $KUBE_SERVER
+        token: $KUBE_TOKEN
+        insecure-skip-tls-verify: true 
+        command: delete -f tacos.yml
+
+clair-scan:
+  box:
+    id: iad.ocir.io/odx-pipelines/wercker/clair-scanner:1.0
+    username: $DOCKER_USERNAME
+    password: $DOCKER_PASSWORD 
+  services:
+  - id: arminc/clair-db
+    tag: 2017-09-18
+    name: postgres
+  - id: arminc/clair-local-scan
+    tag: v2.0.1
+    name: clair
+  docker: true
+  steps: 
+  - script:
+    code: |
+      docker login iad.ocir.io -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+      docker pull iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api:latest
+      sleep 10 # to make sure clair service has started
+      /bin/clair-scanner --ip=`hostname -i` --report="report.json" --clair="http://clair:6060" iad.ocir.io/odx-pipelines/spinnaker/demo_tacos-api:latest || :
+      OK=`grep "\"vulnerabilities\": \[\]" report.json | wc -l`
+      echo $OK
+      if [ "$OK" == "1" ]; then 
+        echo "image was clean, continuing..."
+      else
+        echo "image had vulnerability, I would have aborted here - but for demo purpose I won't :)"
+        #exit 1
+      fi

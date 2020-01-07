@@ -1,0 +1,260 @@
+use tacos
+
+db.dropDatabase()
+
+sillyTacos = db.stores.insertOne({
+  "type" : "tacos",
+  "name" : "Silly Tacos",
+  "address" : "222 Taco Terrace",
+  "city" : "Nashua",
+  "state" : "NH",
+  "zip" : "03062"
+})
+
+sillyTacosId = sillyTacos.insertedId
+
+chillyWilly = db.stores.insertOne({
+    "type" : "icecream",
+    "name" : "Chilly Willy",
+    "address" : "Fifteen Frozen Blvd",
+    "city" : "Nashua",
+    "state" : "NH",
+    "zip" : "03062"
+})
+
+chillyWillyId = chillyWilly.insertedId
+
+bobsBurgers = db.stores.insertOne({
+    "type" : "other",
+    "name" : "Bob's Burgers",
+    "address" : "3 Pickle Place",
+    "city" : "Nashua",
+    "state" : "NH",
+    "zip" : "03062"
+})
+
+bobsBurgersId = bobsBurgers.insertedId
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "base",
+  "name" : "Soft taco shell",
+  "descr" : "Our soft taco shell is made from 100% hand-spun artisinal bleached paperboard",
+  "price" : "1.00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "base",
+  "name" : "Hard taco shell",
+  "descr" : "",
+  "price" : ".50"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "base",
+  "name" : "Bowl",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "filling",
+  "name" : "Chicken",
+  "descr" : "",
+  "price" : "2.00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "filling",
+  "name" : "Beef",
+  "descr" : "",
+  "price" : "2.00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "filling",
+  "name" : "Fish",
+  "descr" : "",
+  "price" : "3.00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "topping",
+  "name" : "Mild salsa",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "topping",
+  "name" : "Hot salsa",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "topping",
+  "name" : "Cheese",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : sillyTacosId,
+  "type" : "topping",
+  "name" : "Lettuce",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "base",
+  "name" : "Plain cone",
+  "descr" : "",
+  "price" : "1.00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "base",
+  "name" : "Sugar cone",
+  "descr" : "",
+  "price" : "1.00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "base",
+  "name" : "Bowl",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "filling",
+  "name" : "Vanilla scoop",
+  "descr" : "",
+  "price" : "2.00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "filling",
+  "name" : "Chocolate scoop",
+  "descr" : "",
+  "price" : "2.00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "filling",
+  "name" : "Coffee scoop",
+  "descr" : "",
+  "price" : "2.00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "topping",
+  "name" : "Whipped cream",
+  "descr" : "",
+  "price" : ".50"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "topping",
+  "name" : "Nuts",
+  "descr" : "",
+  "price" : ".50"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "topping",
+  "name" : "Cherry",
+  "descr" : "A cherry on top - of course you deserve it!",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "topping",
+  "name" : "Chocolate sprinkles",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : chillyWillyId,
+  "type" : "topping",
+  "name" : "Rainbow sprinkles",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "base",
+  "name" : "Sesame seed bun",
+  "descr" : "",
+  "price" : ".50"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "base",
+  "name" : "Gluten free bun",
+  "descr" : "",
+  "price" : "1.00"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "filling",
+  "name" : "100% beef patty",
+  "descr" : "",
+  "price" : "4.00"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "filling",
+  "name" : "Veggie burger",
+  "descr" : "",
+  "price" : "4.00"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "topping",
+  "name" : "Cheese",
+  "descr" : "",
+  "price" : ".25"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "topping",
+  "name" : "Relish",
+  "descr" : "",
+  "price" : ".00"
+})
+
+db.menu_items.insertOne({
+  "store" : bobsBurgersId,
+  "type" : "topping",
+  "name" : "Onion, chopped",
+  "descr" : "",
+  "price" : ".00"
+})
