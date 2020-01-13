@@ -1,0 +1,153 @@
+box:
+  id: golang
+workflows:
+- name: build
+  pipelines:
+  - name: build
+    pipelineName: build
+    envFile: envs/build.env
+  - name: validate-and-promote
+    pipelineName: validate-and-promote
+    requires:
+    - build
+    envFile: envs/validate-and-promote.env
+build:
+  steps:
+  - script:
+      code: |
+        mkdir /go/src/tacos-api
+        cp -rv . /go/src/tacos-api/
+      name: copy src files to goroot
+  - golint "file://steps/wercker_golint_1.4.1":
+      exclude: ^vendor
+  - script:
+      code: |
+        go get -u github.com/kardianos/govendor
+      name: install govendor
+  - script:
+      code: |
+        cd /go/src/tacos-api
+        govendor fetch github.com/cactus/go-statsd-client/statsd
+        govendor sync
+      name: install dependencies
+  - script:
+      code: "cd /go/src/tacos-api\ngo test ./...   \n"
+      name: go test everything
+  - script:
+      code: |
+        cd /go/src/tacos-api
+        go build -o app .
+      name: go build
+  - script:
+      code: "cp -v deploy-api.yml \"$WERCKER_OUTPUT_DIR\"\ncp -v /go/src/tacos-api/app
+        \"$WERCKER_OUTPUT_DIR\"\ncp -v init.mongo \"$WERCKER_OUTPUT_DIR\"\ncp -v tacos.yml
+        \"$WERCKER_OUTPUT_DIR\" \ncp -rv tacos-api-test \"$WERCKER_OUTPUT_DIR\" \n"
+      name: copy files
+  - internal/docker-push:
+      cmd: ./app
+      password: $DOCKER_PASSWORD
+      ports: "32001"
+      registry: https://iad.ocir.io/v2
+      repository: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
+      tag: test
+      username: $DOCKER_USERNAME
+      working-dir: /pipeline/output
+clair-scan:
+  box:
+    id: iad.ocir.io/odx-pipelines/wercker/clair-scanner:1.0
+    username: $DOCKER_USERNAME
+    password: $DOCKER_PASSWORD
+  steps:
+  - script:
+      script: "docker login iad.ocir.io -u $DOCKER_USERNAME -p $DOCKER_PASSWORD\ndocker
+        pull iad.ocir.io/odx-pipelines/gz/demo_tacos-api:latest\nsleep 10 # to make
+        sure clair service has started\n/bin/clair-scanner --ip=`hostname -i` --report=\"report.json\"
+        --clair=\"http://clair:6060\" iad.ocir.io/odx-pipelines/gz/demo_tacos-api:latest
+        || :\nOK=`grep \"\\\"vulnerabilities\\\": \\[\\]\" report.json | wc -l`\necho
+        $OK\nif [ \"$OK\" == \"1\" ]; then \n  echo \"image was clean, continuing...\"\nelse\n
+        \ echo \"image had vulnerability, I would have aborted here - but for demo
+        purpose I won't :)\"\n  #exit 1\nfi\n"
+  services:
+  - id: arminc/clair-db
+    name: postgres
+    tag: 2017-09-18
+  - id: arminc/clair-local-scan
+    name: clair
+    tag: v2.0.1
+  docker: true
+cleanup:
+  box:
+    id: debian
+  steps:
+  - kubectl "file://steps/wercker_kubectl_3.14.0":
+      command: delete -f tacos.yml
+      insecure-skip-tls-verify: "true"
+      name: Remove temporary deployment
+      server: $KUBE_SERVER
+      token: $KUBE_TOKEN
+deploy-to-oke:
+  box:
+    id: debian
+  steps:
+  - kubectl "file://steps/wercker_kubectl_3.14.0":
+      command: delete secret myregistrykey
+      insecure-skip-tls-verify: "true"
+      name: Remove secret for image pull if it already exists
+      server: $KUBE_SERVER
+      token: $KUBE_TOKEN
+  - kubectl "file://steps/wercker_kubectl_3.14.0":
+      command: create secret docker-registry myregistrykey --docker-server="https://iad.ocir.io/v2/"
+        --docker-username=$DOCKER_USERNAME --docker-password="$DOCKER_PASSWORD" --docker-email=$DOCKER_EMAIL
+      insecure-skip-tls-verify: "true"
+      name: Create secret for image pull
+      server: $KUBE_SERVER
+      token: $KUBE_TOKEN
+  - kubectl "file://steps/wercker_kubectl_3.14.0":
+      command: apply -f tacos.yml
+      insecure-skip-tls-verify: "true"
+      name: Deploy application
+      server: $KUBE_SERVER
+      token: $KUBE_TOKEN
+integration-test:
+  box:
+    id: node
+  steps:
+  - script:
+      script: |
+        cd tacos-api-test
+        node func.js
+  docker: true
+validate-and-promote:
+  box:
+    id: debian
+  steps:
+  - script:
+      code: "apt-get update \napt-get -y install gnupg curl\napt-key adv --keyserver
+        hkp://keyserver.ubuntu.com:80 --recv E52529D4\necho \"deb http://repo.mongodb.org/apt/ubuntu
+        bionic/mongodb-org/4.0 multiverse\" > /etc/apt/sources.list.d/mongodb-org-4.0.list\napt-get
+        update\napt-get -y install mongodb-org-shell\nmongo mongo:27017 < $WERCKER_ROOT/init.mongo\n"
+      name: Load test data into mongo
+  - script:
+      code: "TEST1=`curl -s http://apiserver:32001/api/v1/stores | grep \"Silly Tacos\"
+        | wc -l`\nif [ \"$TEST1\" == \"1\" ]; then\n    echo \"GET /api/v1/stores
+        \  OK\"\nelse\n    echo \"GET /api/v1/stores   FAILED\"\n    exit 1\nfi \n"
+      name: Call the API's to verify the image
+  - internal/docker-push:
+      cmd: /pipeline/source/app
+      password: $DOCKER_PASSWORD
+      ports: "32001"
+      registry: https://iad.ocir.io/v2
+      repository: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
+      tag: latest,$WERCKER_GIT_BRANCH-$WERCKER_GIT_COMMIT
+      username: $DOCKER_USERNAME
+      working-dir: /pipeline/source
+  services:
+  - id: mongo:3.6
+    name: mongo
+  - id: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
+    name: apiserver
+    tag: test
+    env:
+      MONGO_HOST: mongo
+    username: $DOCKER_USERNAME
+    password: $DOCKER_PASSWORD
