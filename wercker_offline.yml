@@ -138,7 +138,7 @@ validate-and-promote:
       ports: "32001"
       registry: https://iad.ocir.io/v2
       repository: iad.ocir.io/odx-pipelines/gz/demo_tacos-api
-      tag: latest,$WERCKER_GIT_BRANCH-$WERCKER_GIT_COMMIT
+      tag: latest
       username: $DOCKER_USERNAME
       working-dir: /pipeline/source
   services:
