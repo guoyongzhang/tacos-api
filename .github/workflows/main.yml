@@ -15,4 +15,4 @@ jobs:
         chmod u+x wercker
     - name: Run wercker offline
       run: |
-        ./wercker workflow --wercker-yml wercker_offline.yml "build"
+        XXX_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }} ./wercker workflow --wercker-yml wercker_offline.yml "build"
