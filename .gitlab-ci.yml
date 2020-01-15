@@ -1,0 +1,7 @@
+before_script:
+  - curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
+  - chmod u+x wercker
+
+build-workflow:
+  script:
+    - ./wercker workflow --wercker-yml wercker_offline.yml "build"
