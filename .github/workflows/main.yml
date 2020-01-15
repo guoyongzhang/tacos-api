@@ -14,5 +14,7 @@ jobs:
         curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
         chmod u+x wercker
     - name: Run wercker offline
+      env:
+        XXX_DOCKER_PASSWORD: ${{ secrets.XXX_DOCKER_PASSWORD }}
       run: |
-        XXX_DOCKER_PASSWORD=${{ secrets.GITHUB_TOKEN }} ./wercker workflow --wercker-yml wercker_offline.yml "build"
+        ./wercker workflow --wercker-yml wercker_offline.yml "build"
