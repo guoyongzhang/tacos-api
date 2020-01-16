@@ -1,20 +1,16 @@
-name: CI
-
+name: wercker_offline_build
 on: [push]
-
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v1
-    - name: Set up wercker CLI
-      run: |
-        curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
-        chmod u+x wercker
-    - name: Run wercker offline
-      env:
-        XXX_DOCKER_PASSWORD: ${{ secrets.XXX_DOCKER_PASSWORD }}
-      run: |
-        ./wercker workflow --wercker-yml wercker_offline.yml "build"
+      - uses: actions/checkout@v1
+      - name: Set up wercker CLI
+        run: |
+          curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
+          chmod u+x wercker
+      - name: Run wercker offline
+        env:
+          XXX_DOCKER_PASSWORD: ${{ secrets.XXX_DOCKER_PASSWORD }}
+        run: |
+          ./wercker workflow --wercker-yml wercker_offline.yml "build"
