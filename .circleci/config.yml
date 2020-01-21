@@ -3,6 +3,8 @@ jobs:
     machine: true
     steps:
       - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
       - run: pwd
       - run: ls -al
       - run: curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
