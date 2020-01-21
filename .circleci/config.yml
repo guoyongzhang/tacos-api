@@ -3,10 +3,12 @@ jobs:
     machine: true
     steps:
       - checkout
-      - setup_remote_docker
       - run: pwd
       - run: ls -al
       - run: curl -L https://s3.amazonaws.com/downloads.wercker.com/cli/stable/linux_amd64/wercker -o wercker
       - run: chmod u+x wercker
       - run: ls -al
+      - run: uname -a
+      - run: docker ps -a
+      - run: docker images
       - run: ./wercker workflow --wercker-yml wercker_offline.yml "build"
